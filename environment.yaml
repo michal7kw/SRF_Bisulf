@@ -1,0 +1,15 @@
+name: bisulfite_seq
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - snakemake=6.0
+  - trim-galore=0.6.7
+  - fastqc=0.11.9
+  - bismark=0.23.0
+  - bowtie2=2.4.2
+  - samtools=1.11
+  - qualimap=2.2.2
+  - preseq=3.1.2
+  - multiqc=1.11

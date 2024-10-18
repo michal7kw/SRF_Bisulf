@@ -1,0 +1,87 @@
+
+SUMMARISING RUN PARAMETERS
+==========================
+Input filename: NPC1_R2_paired.fastq.gz
+Trimming mode: paired-end
+Trim Galore version: 0.6.7
+Cutadapt version: 4.9
+Number of cores used for trimming: 1
+Quality Phred score cutoff: 20
+Quality encoding type selected: ASCII+33
+Unable to auto-detect most prominent adapter from the first specified file (count Illumina: 0, count Nextera: 0, count smallRNA: 0)
+Defaulting to Illumina universal adapter ( AGATCGGAAGAGC ). Specify -a SEQUENCE to avoid this behavior).
+Adapter sequence: 'AGATCGGAAGAGC' (Illumina TruSeq, Sanger iPCR; default (inconclusive auto-detection))
+Maximum trimming error rate: 0.1 (default)
+Minimum required adapter overlap (stringency): 1 bp
+Minimum required sequence length for both reads before a sequence pair gets removed: 20 bp
+Running FastQC on the data once trimming has completed
+Output file will be GZIP compressed
+
+
+This is cutadapt 4.9 with Python 3.9.9
+Command line parameters: -j 1 -e 0.1 -q 20 -O 1 -a AGATCGGAAGAGC NPC1_R2_paired.fastq.gz
+Processing single-end reads on 1 core ...
+Finished in 9155.582 s (27.052 µs/read; 2.22 M reads/minute).
+
+=== Summary ===
+
+Total reads processed:             338,441,657
+Reads with adapters:               155,386,265 (45.9%)
+Reads written (passing filters):   338,441,657 (100.0%)
+
+Total basepairs processed: 33,347,965,230 bp
+Quality-trimmed:              15,318,902 bp (0.0%)
+Total written (filtered):  33,176,921,291 bp (99.5%)
+
+=== Adapter 1 ===
+
+Sequence: AGATCGGAAGAGC; Type: regular 3'; Length: 13; Trimmed: 155386265 times
+
+Minimum overlap: 1
+No. of allowed errors:
+1-9 bp: 0; 10-13 bp: 1
+
+Bases preceding removed adapters:
+  A: 54.9%
+  C: 17.0%
+  G: 0.7%
+  T: 27.5%
+  none/other: 0.0%
+
+Overview of removed sequences
+length	count	expect	max.err	error counts
+1	155175103	84610414.2	0	155175103
+2	123812	21152603.6	0	123812
+3	60923	5288150.9	0	60923
+4	18051	1322037.7	0	18051
+5	5046	330509.4	0	5046
+6	1749	82627.4	0	1749
+7	1531	20656.8	0	1531
+8	2	5164.2	0	2
+9	7	1291.1	0	7
+10	5	322.8	1	3 2
+11	3	80.7	1	3
+12	1	20.2	1	0 1
+13	2	5.0	1	2
+14	1	5.0	1	1
+16	3	5.0	1	3
+19	1	5.0	1	0 1
+20	3	5.0	1	0 3
+21	6	5.0	1	0 6
+22	3	5.0	1	0 3
+23	2	5.0	1	1 1
+24	3	5.0	1	1 2
+27	1	5.0	1	0 1
+28	3	5.0	1	1 2
+30	1	5.0	1	0 1
+31	1	5.0	1	0 1
+36	1	5.0	1	0 1
+37	1	5.0	1	1
+
+RUN STATISTICS FOR INPUT FILE: NPC1_R2_paired.fastq.gz
+=============================================
+338441657 sequences processed in total
+
+Total number of sequences analysed for the sequence pair length validation: 338441657
+
+Number of sequence pairs removed because at least one read was shorter than the length cutoff (20 bp): 973 (0.00%)

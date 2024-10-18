@@ -1,0 +1,267 @@
+---
+title: "BismarkGPT"
+output: html_document
+date: "2024-05-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+    knitr::opts_knit$set(root.dir = "/beegfs/scratch/ric.cosr/moscato.giosue/MIRKO_WGBS2/")
+getwd()
+setwd("/beegfs/scratch/ric.cosr/moscato.giosue/MIRKO_WGBS2/")
+```
+
+```{r}
+dir.create(file.path("DEA_out"),showWarnings = FALSE)
+```
+
+```{r}
+library(DESeq2)
+library(gprofiler2)
+library(ggplot2)
+library(ggrepel)
+#library(clusterProfiler)
+#library(enrichplot)
+library(DOSE) # needed to convert to enrichResult object
+library(EnhancedVolcano)
+library(fgsea)
+library('org.Hs.eg.db')
+library('org.Mm.eg.db')
+library(dplyr)
+library(stringr)
+library(gridExtra)
+library(readr)
+library(openxlsx)
+library(clusterProfiler)
+library(edgeR)
+
+
+```
+
+1. Unire i Dati dei Replicati
+Supponendo che tu abbia già estratto i dati di metilazione utilizzando Bismark, carica i file di metilazione per ogni replicato:
+```{r}
+library(dplyr)
+
+# Carica i dati di metilazione per ciascun campione
+neurons_rep1 <- read.table("fastq/trimmed/trimmomatic/mapped/bismark//NEU1_R1_paired_bismark_bt2_pe.deduplicated.CpG_report.txt.gz", header = F)
+neurons_rep2 <- read.table("fastq/trimmed/trimmomatic/mapped/bismark//NEU2_R1_paired_bismark_bt2_pe.deduplicated.CpG_report.txt.gz", header = F)
+npcs_rep1 <- read.table("fastq/trimmed/trimmomatic/mapped/bismark//NPC1_R1_paired_bismark_bt2_pe.deduplicated.CpG_report.txt.gz", header = F)
+npcs_rep2 <- read.table("fastq/trimmed/trimmomatic/mapped/bismark//NPC2_R1_paired_bismark_bt2_pe.deduplicated.CpG_report.txt.gz", header = F)
+
+```
+
+```{r}
+allmet <- data.frame(row.names = paste0(neurons_rep1$V1,"__",neurons_rep1$V2,"__",neurons_rep1$V3),
+           Neu1_ME= neurons_rep1$V4 ,
+           Neu1_UN= neurons_rep1$V5,
+           Neu2_ME= neurons_rep2$V4,
+           Neu2_UN= neurons_rep2$V5,
+           NPC1_ME= npcs_rep1$V4 ,
+           NPC1_UN= npcs_rep1$V5 ,
+           NPC2_ME= npcs_rep2$V4,
+           NPC2_UN= npcs_rep2$V5)
+```
+
+```{r}
+dim(allmet)
+Coverage <- data.frame(row.names = paste0(neurons_rep1$V1,"__",neurons_rep1$V2,"__",neurons_rep1$V3),
+           Neu1= neurons_rep1$V4 + neurons_rep1$V5,
+           Neu2= neurons_rep2$V4 + neurons_rep2$V5,
+           NPC1= npcs_rep1$V4 + npcs_rep1$V5 ,
+           NPC2= npcs_rep2$V4 + npcs_rep2$V5)
+allmet <- allmet[rowSums(Coverage >= 8) ==4,]
+dim(allmet)
+```
+
+```{r}
+met_lev <- data.frame(row.names = rownames(allmet),
+                      Neu1=allmet$Neu1_ME/(allmet$Neu1_ME+ allmet$Neu1_UN)*100,
+                      Neu2=allmet$Neu2_ME/(allmet$Neu2_ME+ allmet$Neu2_UN)*100,
+                      NPC1= allmet$NPC1_ME/(allmet$NPC1_ME + allmet$NPC1_UN)*100 ,
+                      NPC2= allmet$NPC2_ME/(allmet$NPC2_ME+ allmet$NPC2_UN)*100 )
+unmet_lev <- data.frame(row.names = rownames(allmet),
+                      Neu1=allmet$Neu1_UN/(allmet$Neu1_ME+ allmet$Neu1_UN)*100,
+                      Neu2=allmet$Neu2_UN/(allmet$Neu2_ME+ allmet$Neu2_UN)*100,
+                      NPC1= allmet$NPC1_UN/(allmet$NPC1_ME + allmet$NPC1_UN)*100 ,
+                      NPC2= allmet$NPC2_UN/(allmet$NPC2_ME+ allmet$NPC2_UN)*100 )
+```
+
+```{r}
+met_CPG_NEU <- as.data.frame(str_split(rownames(met_lev)[rowMeans(met_lev[,1:2])>50],"__",simplify = T)[,1:3])
+met_CPG_NPC <- as.data.frame(str_split(rownames(met_lev)[rowMeans(met_lev[,3:4])>50],"__",simplify = T)[,1:3])
+
+unmet_CPG_NEU <- as.data.frame(str_split(rownames(unmet_lev)[rowMeans(unmet_lev[,1:2])>50],"__",simplify = T)[,1:3])
+unmet_CPG_NPC <- as.data.frame(str_split(rownames(unmet_lev)[rowMeans(unmet_lev[,3:4])>50],"__",simplify = T)[,1:3])
+
+
+```
+
+finire questa parte per ognuna delle 4 liste
+```{r}
+met_CPG_NEU_df <- data.frame(chr=met_CPG_NEU$V1,start=as.numeric(met_CPG_NEU$V2),end=as.numeric(met_CPG_NEU$V2)+1,strand="*")
+met_CPG_NEU_grange <- makeGRangesFromDataFrame(met_CPG_NEU_df)
+rtracklayer::export.bed(met_CPG_NEU_grange,"DEA_out/met_CPG_NEU.bed")
+
+
+
+unmet_CPG_NEU_df <- data.frame(chr=unmet_CPG_NEU$V1,start=as.numeric(unmet_CPG_NEU$V2),end=as.numeric(unmet_CPG_NEU$V2)+1,strand="*")
+unmet_CPG_NEU_grange <- makeGRangesFromDataFrame(unmet_CPG_NEU_df)
+rtracklayer::export.bed(unmet_CPG_NEU_grange,"DEA_out/unmet_CPG_NEU.bed")
+
+met_CPG_NPC_df <- data.frame(chr=met_CPG_NPC$V1,start=as.numeric(met_CPG_NPC$V2),end=as.numeric(met_CPG_NPC$V2)+1,strand="*")
+met_CPG_NPC_grange <- makeGRangesFromDataFrame(met_CPG_NPC_df)
+rtracklayer::export.bed(met_CPG_NPC_grange,"DEA_out/met_CPG_NPC.bed")
+
+unmet_CPG_NPC_df <- data.frame(chr=unmet_CPG_NPC$V1,start=as.numeric(unmet_CPG_NPC$V2),end=as.numeric(unmet_CPG_NPC$V2)+1,strand="*")
+unmet_CPG_NPC_grange <- makeGRangesFromDataFrame(unmet_CPG_NPC_df)
+rtracklayer::export.bed(unmet_CPG_NPC_grange,"DEA_out/unmet_CPG_NPC.bed")
+
+
+```
+
+
+```{r}
+all_CpG <- list("met_CPG_NEU"=met_CPG_NEU,
+     "unmet_CPG_NEU"=unmet_CPG_NEU,
+     "met_CPG_NPC"=met_CPG_NPC,
+     "unmet_CPG_NPC"=unmet_CPG_NPC)
+all_TSS <- lapply(all_CpG, function(x){nearestTSS(x$V1,x$V2,species="Mm")})
+all_TSS <- lapply(all_TSS,function(x){x[abs(x$distance)<=500,]})
+all_TSS <- lapply(all_TSS,function(x){unique(x$symbol)})
+
+paste("Geni sia met che unmet in NEU:",length(intersect(all_TSS$met_CPG_NEU,all_TSS$unmet_CPG_NEU)))
+paste("Geni sia met che unmet in NPC:",length(intersect(all_TSS$met_CPG_NPC,all_TSS$unmet_CPG_NPC)))
+
+paste("Geni unmet sia NEU che NPC:",length(intersect(all_TSS$unmet_CPG_NPC,all_TSS$unmet_CPG_NEU)))
+paste("Geni met sia NEU che NPC:",length(intersect(all_TSS$met_CPG_NEU,all_TSS$met_CPG_NPC)))
+#nearestTSS(met_CPG_NEU$V1,met_CPG_NEU$V2,species = "Mm")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Dopo avere intersecato i bed files con CpG_Islands.sorted.bed, annotiamo le CpG rimaste 
+
+```{r}
+met_NEU <- read.delim("/beegfs/scratch/ric.cosr/moscato.giosue/MIRKO_WGBS2/DEA_out/intersections/met_CpG_inNeu.bed", comment.char="#",header = F)
+unmet_NEU<- read.delim("/beegfs/scratch/ric.cosr/moscato.giosue/MIRKO_WGBS2/DEA_out/intersections/unmet_CpG_inNeu.bed", comment.char="#",header = F)
+met_NPC<- read.delim("/beegfs/scratch/ric.cosr/moscato.giosue/MIRKO_WGBS2/DEA_out/intersections/met_CpG_inNPC.bed", comment.char="#",header = F)
+unmet_NPC<- read.delim("/beegfs/scratch/ric.cosr/moscato.giosue/MIRKO_WGBS2/DEA_out/intersections/unmet_CpG_inNPC.bed", comment.char="#",header = F)
+```
+
+
+```{r}
+library(ChIPseeker)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+df <- met_NEU 
+colnames(df) <- c("chr","start","end")
+df$strand <- "*"
+peakranges_up <- makeGRangesFromDataFrame(df)
+met_NEU_annolist <- annotatePeak(peak=peakranges_up,TxDb = TxDb.Mmusculus.UCSC.mm10.knownGene,tssRegion=c(-3000, 3000),annoDb = "org.Mm.eg.db")
+
+df <- unmet_NEU 
+colnames(df) <- c("chr","start","end")
+df$strand <- "*"
+peakranges_up <- makeGRangesFromDataFrame(df)
+unmet_NEU_annolist <- annotatePeak(peak=peakranges_up,TxDb = TxDb.Mmusculus.UCSC.mm10.knownGene,tssRegion=c(-3000, 3000),annoDb = "org.Mm.eg.db")
+
+df <- met_NPC 
+colnames(df) <- c("chr","start","end")
+df$strand <- "*"
+peakranges_up <- makeGRangesFromDataFrame(df)
+met_NPC_annolist <- annotatePeak(peak=peakranges_up,TxDb = TxDb.Mmusculus.UCSC.mm10.knownGene,tssRegion=c(-3000, 3000),annoDb = "org.Mm.eg.db")
+
+df <- unmet_NPC 
+colnames(df) <- c("chr","start","end")
+df$strand <- "*"
+peakranges_up <- makeGRangesFromDataFrame(df)
+unmet_NPC_annolist <- annotatePeak(peak=peakranges_up,TxDb = TxDb.Mmusculus.UCSC.mm10.knownGene,tssRegion=c(-3000, 3000),annoDb = "org.Mm.eg.db")
+
+```
+
+```{r}
+plotAnnoPie(met_NEU_annolist,main="\n \n met_NEU_annolist ")
+plotAnnoPie(unmet_NEU_annolist,main="\n \n unmet_NEU_annolist  ")
+plotAnnoPie(met_NPC_annolist,main="\n \n met_NPC_annolist ")
+plotAnnoPie(unmet_NPC_annolist,main="\n \n unmet_NPC_annolist ")
+
+```
+```{r}
+met_NEU_annot <- as.data.frame(met_NEU_annolist@anno)
+unmet_NEU_annot <- as.data.frame(unmet_NEU_annolist@anno)
+met_NPC_annot <-  as.data.frame(met_NPC_annolist@anno)
+unmet_NPC_annot <-  as.data.frame(unmet_NPC_annolist@anno)
+```
+
+
+
+```{r}
+met_NEU_annot <- met_NEU_annot[!met_NEU_annot$annotation=="Distal Intergenic",]
+unmet_NEU_annot <- unmet_NEU_annot[!unmet_NEU_annot$annotation=="Distal Intergenic",]
+met_NPC_annot <- met_NPC_annot[!met_NPC_annot$annotation=="Distal Intergenic",]
+unmet_NPC_annot <- unmet_NPC_annot[!unmet_NPC_annot$annotation=="Distal Intergenic",]
+
+```
+
+```{r}
+write.table(unique(met_NEU_annot$SYMBOL),"DEA_out/intersections/met_genes_NEU.txt",row.names = F,col.names = F,quote = F)
+
+write.table(unique(unmet_NEU_annot$SYMBOL),"DEA_out/intersections/unmet_genes_NEU.txt",row.names = F,col.names = F,quote = F)
+
+write.table(unique(met_NPC_annot$SYMBOL),"DEA_out/intersections/met_genes_NPC.txt",row.names = F,col.names = F,quote = F)
+
+write.table(unique(unmet_NPC_annot$SYMBOL),"DEA_out/intersections/unmet_genes_NPC.txt",row.names = F,col.names = F,quote = F)
+```
+184,176,1036,240
+201,295,1058,900
+
+2. Calcolare i Livelli di Metilazione Medi
+Calcola i livelli di metilazione medi per ciascun gruppo:
+```{r}
+# Calcola la metilazione media per ogni gruppo
+mean_methylation <- function(rep1, rep2) {
+  merged <- merge(rep1, rep2, by = c("V1", "V2", "V3"), suffixes = c("_rep1", "_rep2"))
+  merged <- merged %>%
+    mutate(mean_meth = (V4_rep1 + V4_rep2) / 2)
+  return(merged)
+}
+
+neurons_mean <- mean_methylation(neurons_rep1, neurons_rep2)
+npcs_mean <- mean_methylation(npcs_rep1, npcs_rep2)
+
+```
+
+3. Identificare i Siti CpG Ipo e Ipermetilati
+Determina i siti CpG ipo e ipermetilati in base a una soglia. Per esempio, possiamo considerare ipo-metilati i siti con metilazione media inferiore al 20% e ipermetilati quelli con metilazione media superiore all'80%.
+```{r}
+# Definisci le soglie
+hypo_threshold <- 0.2
+hyper_threshold <- 0.8
+
+# Trova i siti ipo e ipermetilati per i Neuroni
+neurons_hypo <- neurons_mean %>% filter(mean_meth < hypo_threshold)
+neurons_hyper <- neurons_mean %>% filter(mean_meth > hyper_threshold)
+
+# Trova i siti ipo e ipermetilati per i NPCs
+npcs_hypo <- npcs_mean %>% filter(mean_meth < hypo_threshold)
+npcs_hyper <- npcs_mean %>% filter(mean_meth > hyper_threshold)
+
+# Salva i risultati
+write.table(neurons_hypo, "neurons_hypo_methylated_CpG.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+write.table(neurons_hyper, "neurons_hyper_methylated_CpG.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+write.table(npcs_hypo, "npcs_hypo_methylated_CpG.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+write.table(npcs_hyper, "npcs_hyper_methylated_CpG.txt", row.names = FALSE, quote = FALSE, sep = "\t")
+
+```
+

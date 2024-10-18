@@ -1,0 +1,41 @@
+
+CondaValueError: prefix already exists: /home/kubacki.michal/.conda/envs/bisulfite_seq
+
+Unlocking working directory.
+Building DAG of jobs...
+Forcing incomplete files:
+	/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Bisulf/results/trimmed/NEU1_R1_paired_trimmed.fq.gz
+	/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Bisulf/results/trimmed/NEU1_R2_paired_trimmed.fq.gz
+Using shell: /usr/bin/bash
+Provided cores: 72
+Rules claiming more threads will be scaled down.
+Job counts:
+	count	jobs
+	1	all
+	1	bismark_align
+	1	bismark_report
+	1	bismark_summary
+	1	deduplicate
+	1	methylation_extraction
+	1	multiqc
+	1	preseq
+	1	qualimap
+	1	trim_galore
+	10
+Resources before job selection: {'_cores': 72, '_nodes': 9223372036854775807}
+Ready jobs (1):
+	trim_galore
+Select jobs to execute...
+Failed to solve scheduling problem with ILP solver. Falling back to greedy solver. Run Snakemake with --verbose to see the full solver output for debugging the problem.
+Selected jobs (1):
+	trim_galore
+Resources after job selection: {'_cores': 40, '_nodes': 9223372036854775806}
+
+[Fri Oct 18 10:26:04 2024]
+Job 1: Trimming reads for sample NEU1
+
+
+        trim_galore --paired --fastqc --cores 32             --output_dir $(dirname /beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Bisulf/results/trimmed/NEU1_R1_paired_trimmed.fq.gz)             NEU1_R1_paired.fastq.gz NEU1_R2_paired.fastq.gz             > /beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Bisulf/results/logs/trim_galore/NEU1.log 2>&1
+
+        echo "Trimming completed for NEU1"
+        

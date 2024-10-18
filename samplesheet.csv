@@ -1,0 +1,5 @@
+sample,fastq_1,fastq_2
+NEU1,NEU1_R1_paired.fastq.gz,NEU1_R2_paired.fastq.gz
+NEU2,NEU2_R1_paired.fastq.gz,NEU2_R2_paired.fastq.gz
+NPC1,NPC1_R1_paired.fastq.gz,NPC1_R2_paired.fastq.gz
+NPC2,NPC2_R1_paired.fastq.gz,NPC2_R2_paired.fastq.gz

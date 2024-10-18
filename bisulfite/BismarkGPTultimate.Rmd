@@ -1,0 +1,319 @@
+---
+title: "BismarkGPTmodified"
+output: html_document
+date: "2024-05-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+    knitr::opts_knit$set(root.dir = "/beegfs/scratch/ric.cosr/moscato.giosue/MIRKO_WGBS2/")
+getwd()
+setwd("/beegfs/scratch/ric.cosr/moscato.giosue/MIRKO_WGBS2/")
+```
+
+```{r}
+dir.create(file.path("DEA_out"),showWarnings = FALSE)
+```
+
+```{r}
+library(DESeq2)
+library(gprofiler2)
+library(ggplot2)
+library(ggrepel)
+#library(clusterProfiler)
+#library(enrichplot)
+library(DOSE) # needed to convert to enrichResult object
+library(EnhancedVolcano)
+library(fgsea)
+library('org.Hs.eg.db')
+library('org.Mm.eg.db')
+library(dplyr)
+library(stringr)
+library(gridExtra)
+library(readr)
+library(openxlsx)
+library(clusterProfiler)
+library(edgeR)
+
+
+```
+
+1. Unire i Dati dei Replicati
+Supponendo che tu abbia già estratto i dati di metilazione utilizzando Bismark, carica i file di metilazione per ogni replicato:
+```{r}
+library(dplyr)
+
+# Carica i dati di metilazione per ciascun campione
+neurons_rep1 <- read.table("fastq/trimmed/trimmomatic/mapped/bismark/NEU1_R1_paired_bismark_bt2_pe.deduplicated.bismark.cov.gz", header = F)
+neurons_rep2 <- read.table("fastq/trimmed/trimmomatic/mapped/bismark/NEU2_R1_paired_bismark_bt2_pe.deduplicated.bismark.cov.gz", header = F)
+npcs_rep1 <- read.table("fastq/trimmed/trimmomatic/mapped/bismark/NPC1_R1_paired_bismark_bt2_pe.deduplicated.bismark.cov.gz", header = F)
+npcs_rep2 <- read.table("fastq/trimmed/trimmomatic/mapped/bismark/NPC2_R1_paired_bismark_bt2_pe.deduplicated.bismark.cov.gz", header = F)
+
+```
+
+```{r}
+neurons_rep1 <-  neurons_rep1[neurons_rep1$V5 + neurons_rep1$V6>=8,]
+neurons_rep2 <-  neurons_rep2[neurons_rep2$V5 + neurons_rep2$V6 >=8,]
+
+npcs_rep1 <- npcs_rep1[npcs_rep1$V5 + npcs_rep1$V6 >=8, ]
+npcs_rep2 <- npcs_rep2[npcs_rep2$V5 + npcs_rep2$V6 >=8, ]
+
+
+```
+
+```{r}
+neurons_rep1$V7 <- 100-neurons_rep1$V4
+neurons_rep2$V7 <- 100-neurons_rep2$V4
+npcs_rep1$V7 <- 100-npcs_rep1$V4
+npcs_rep2$V7 <- 100-npcs_rep2$V4
+
+```
+
+```{r}
+met_NEU1 <- neurons_rep1[neurons_rep1$V4>50,]
+met_NEU2 <- neurons_rep2[neurons_rep2$V4>50,]
+
+unmet_NEU1 <- neurons_rep1[neurons_rep1$V4<50,]
+unmet_NEU2 <- neurons_rep2[neurons_rep2$V4<50,]
+
+met_NPC1 <- npcs_rep1[npcs_rep1$V4>50,]
+met_NPC2 <- npcs_rep2[npcs_rep2$V4>50,]
+
+unmet_NPC1 <- npcs_rep1[npcs_rep1$V4<50,]
+unmet_NPC2 <- npcs_rep2[npcs_rep2$V4<50,]
+
+```
+
+#```{r}
+#dir.create("DEA_out/ultimate_bed")
+##met_NEU1
+#rtracklayer::export.bed(makeGRangesFromDataFrame(data.frame(
+#        chr=met_NEU1$V1, 
+#        start=met_NEU1$V2, 
+#        end=met_NEU1$V3, 
+#        strand="*", 
+#        score=met_NEU1$V4
+#        ),
+#          keep.extra.columns = T),
+#            "DEA_out/ultimate_bed/met_NEU1.bed")
+#
+##met_NEU2
+#rtracklayer::export.bed(makeGRangesFromDataFrame(data.frame(
+#        chr=met_NEU2$V1, 
+#        start=met_NEU2$V2, 
+#        end=met_NEU2$V3, 
+#        strand="*", 
+#        score=met_NEU2$V4
+#        ),
+#          keep.extra.columns = T),
+#            "DEA_out/ultimate_bed/met_NEU2.bed")
+#
+##unmet_NEU1
+#rtracklayer::export.bed(makeGRangesFromDataFrame(data.frame(
+#        chr=unmet_NEU1$V1, 
+#        start=unmet_NEU1$V2, 
+#        end=unmet_NEU1$V3, 
+#        strand="*", 
+#        score=(unmet_NEU1$V7)*-1
+#        ),
+#          keep.extra.columns = T),
+#            "DEA_out/ultimate_bed/unmet_NEU1.bed")
+#
+##unmet_NEU2
+#rtracklayer::export.bed(makeGRangesFromDataFrame(data.frame(
+#        chr=unmet_NEU2$V1, 
+#        start=unmet_NEU2$V2, 
+#        end=unmet_NEU2$V3, 
+#        strand="*", 
+#        score=(unmet_NEU2$V7)*-1
+#        ),
+#          keep.extra.columns = T),
+#            "DEA_out/ultimate_bed/unmet_NEU2.bed")
+#
+##met_NPC1
+#rtracklayer::export.bed(makeGRangesFromDataFrame(data.frame(
+#        chr=met_NPC1$V1, 
+#        start=met_NPC1$V2, 
+#        end=met_NPC1$V3, 
+#        strand="*", 
+#        score=met_NPC1$V4
+#        ),
+#          keep.extra.columns = T),
+#            "DEA_out/ultimate_bed/met_NPC1.bed")
+#
+##met_NPC2
+#rtracklayer::export.bed(makeGRangesFromDataFrame(data.frame(
+#        chr=met_NPC2$V1, 
+#        start=met_NPC2$V2, 
+#        end=met_NPC2$V3, 
+#        strand="*", 
+#        score=met_NPC2$V4
+#        ),
+#          keep.extra.columns = T),
+#            "DEA_out/ultimate_bed/met_NPC2.bed")
+#
+##unmet_NPC1
+#rtracklayer::export.bed(makeGRangesFromDataFrame(data.frame(
+#        chr=unmet_NPC1$V1, 
+#        start=unmet_NPC1$V2, 
+#        end=unmet_NPC1$V3, 
+#        strand="*", 
+#        score=(unmet_NPC1$V7)*-1
+#        ),
+#          keep.extra.columns = T),
+#            "DEA_out/ultimate_bed/unmet_NPC1.bed")
+#
+##unmet_NPC2
+#rtracklayer::export.bed(makeGRangesFromDataFrame(data.frame(
+#        chr=unmet_NPC2$V1, 
+#        start=unmet_NPC2$V2, 
+#        end=unmet_NPC2$V3, 
+#        strand="*", 
+#        score=(unmet_NPC2$V7)*-1
+#        ),
+#          keep.extra.columns = T),
+#            "DEA_out/ultimate_bed/unmet_NPC2.bed")
+#
+#```
+
+Dopo avere intersecato i bed files con CpG_Islands.sorted.bed, annotiamo le CpG rimaste 
+```{r}
+genelist <- list()
+library(ChIPseeker)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+listatoannotate <- list.files("DEA_out/ultimate_bed/intersections/","collapsed")
+#listatoannotate <- listatoannotate[1] #da togliere
+
+for (i in listatoannotate){
+  print(i)
+  name <- str_split(str_split(i,"collapsed_",simplify = T)[,2],".bed",simplify = T)[,1]
+  pathfile <- "DEA_out/ultimate_bed/intersections/"
+  df <- read.delim(paste0(pathfile,i), comment.char="#",header = F)[,1:4]
+  colnames(df) <- c("chr","start","end","score")
+  df$strand <- "*"
+  iper_df <- df[df$score>0,]
+  ipo_df <- df[df$score<0,]
+  
+  GR_iper_df <- makeGRangesFromDataFrame(iper_df)
+  GR_ipo_df <- makeGRangesFromDataFrame(ipo_df)
+  
+  export.bed(GR_iper_df,paste0("DEA_out/ultimate_bed/intersections/CpG/ipermethylated_",name,".txt"))  
+  export.bed(GR_ipo_df,paste0("DEA_out/ultimate_bed/intersections/CpG/ipomethylated_",name,".txt"))
+  
+  #print(head(GRANGE_DF))
+  iper_annot <- annotatePeak(peak=GR_iper_df,TxDb = TxDb.Mmusculus.UCSC.mm10.knownGene,tssRegion=c(-3000, 3000),annoDb = "org.Mm.eg.db")
+  ipo_annot <- annotatePeak(peak=GR_ipo_df,TxDb = TxDb.Mmusculus.UCSC.mm10.knownGene,tssRegion=c(-3000, 3000),annoDb = "org.Mm.eg.db")
+  
+  #print(head(GRANGE_annot@anno))
+  
+  plotAnnoPie(iper_annot,main=paste0("\n iper met",name))
+  plotAnnoPie(ipo_annot,main=paste0("\n ipo met",name))
+
+  iper_df_annot <- as.data.frame(iper_annot@anno)
+  iper_df_annot <- iper_df_annot[!iper_df_annot$annotation=="Distal Intergenic",]
+  
+  ipo_df_annot <- as.data.frame(ipo_annot@anno)
+  ipo_df_annot <- ipo_df_annot[!ipo_df_annot$annotation=="Distal Intergenic",]
+  
+  write.table(unique(iper_df_annot$SYMBOL),paste0("DEA_out/ultimate_bed/intersections/genes/ipermethylated_",name,".txt"),row.names = F,col.names = F,quote = F)
+  write.table(unique(ipo_df_annot$SYMBOL),paste0("DEA_out/ultimate_bed/intersections/genes/ipomethylated_",name,".txt"),row.names = F,col.names = F,quote = F)
+
+
+  namelist1 <- paste0("ipermet_",name)
+  namelist2 <- paste0("ipomet_",name)
+  
+  genelist[[namelist1]] <- data.frame(Gene=iper_df_annot$SYMBOL,location=str_split(iper_df_annot$annotation," \\(",simplify = T)[,1],CpG_status="iper-methylated")
+  genelist[[namelist2]] <- data.frame(Gene=ipo_df_annot$SYMBOL,location=str_split(ipo_df_annot$annotation," \\(",simplify = T)[,1],CpG_status="ipo-methylated")
+}
+View(genelist)
+```
+
+```{r}
+Neu <- rbind(genelist[["ipermet_CpG_inNeu1"]],genelist[["ipomet_CpG_inNeu1"]])
+NPC <- rbind(genelist[["ipermet_CpG_inNPC2"]],genelist[["ipomet_CpG_inNPC2"]])
+
+
+```
+
+```{r}
+# Carica i pacchetti necessari
+library(dplyr)
+library(tidyr)
+
+
+# Funzione per creare le colonne location_ipo e location_iper
+summarize_locations <- function(locations, status) {
+  paste(locations[status == "ipo-methylated"], collapse = ";") 
+  paste(locations[status == "iper-methylated"], collapse = ";")
+}
+
+# Crea il nuovo dataframe aggregato
+Neu_summary <- Neu %>%
+  group_by(Gene) %>%
+  summarize(
+    iper_CpG = sum(CpG_status == "iper-methylated"),
+    location_iper_CpG = paste(location[CpG_status == "iper-methylated"], collapse = ";"),
+    ipo_CpG = sum(CpG_status == "ipo-methylated"),
+    location_ipo_CpG = paste(location[CpG_status == "ipo-methylated"], collapse = ";")
+  ) %>%
+  ungroup()
+
+# Visualizza il risultato
+print(Neu_summary)
+
+
+NPC_summary <- NPC %>%
+  group_by(Gene) %>%
+  summarize(
+    iper_CpG = sum(CpG_status == "iper-methylated"),
+    location_iper_CpG = paste(location[CpG_status == "iper-methylated"], collapse = ";"),
+    ipo_CpG = sum(CpG_status == "ipo-methylated"),
+    location_ipo_CpG = paste(location[CpG_status == "ipo-methylated"], collapse = ";")
+  ) %>%
+  ungroup()
+
+# Visualizza il risultato
+print(NPC_summary)
+
+
+```
+Saving normalized counts
+```{r}
+library("openxlsx")
+# Create a new workbook
+wb <- createWorkbook()
+
+# Add sheets with the prepared data
+addWorksheet(wb, "NEU")
+writeData(wb, "NEU", Neu_summary,rowNames = F)
+
+# Add sheets with the prepared data
+addWorksheet(wb, "NPC")
+writeData(wb, "NPC", NPC_summary,rowNames = F)
+
+
+  saveWorkbook(wb, "DEA_out/ultimate_bed/intersections/genes/CpG_gene_association.xlsx", overwrite = TRUE)
+
+```
+
+
+```{r}
+ipoNeu <-   Neu_summary[Neu_summary$iper_CpG==0,]$Gene
+iperNeu <- Neu_summary[Neu_summary$ipo_CpG==0,]$Gene
+bothNeu <- Neu_summary[Neu_summary$Gene %in% setdiff(Neu_summary$Gene,c(ipoNeu,iperNeu)),]$Gene
+
+ipoNPC  <- NPC_summary[NPC_summary$iper_CpG==0,]$Gene
+iperNPC <- NPC_summary[NPC_summary$ipo_CpG==0,]$Gene
+bothNPC <-  NPC_summary[NPC_summary$Gene %in% setdiff(NPC_summary$Gene,c(iperNPC,ipoNPC)),]$Gene
+```
+
+```{r}
+write.table(ipoNeu,paste0("DEA_out/ultimate_bed/intersections/genes/ipomethylated_Neu.txt"),row.names = F,col.names = F,quote = F)
+write.table(iperNeu,paste0("DEA_out/ultimate_bed/intersections/genes/ipermethylated_Neu.txt"),row.names = F,col.names = F,quote = F)
+write.table(bothNeu,paste0("DEA_out/ultimate_bed/intersections/genes/bothmethylated_Neu.txt"),row.names = F,col.names = F,quote = F)
+
+write.table(ipoNPC,paste0("DEA_out/ultimate_bed/intersections/genes/ipomethylated_NPC.txt"),row.names = F,col.names = F,quote = F)
+write.table(iperNPC,paste0("DEA_out/ultimate_bed/intersections/genes/ipermethylated_NPC.txt"),row.names = F,col.names = F,quote = F)
+write.table(bothNPC,paste0("DEA_out/ultimate_bed/intersections/genes/bothmethylated_NPC.txt"),row.names = F,col.names = F,quote = F)
+```
+
