@@ -6,154 +6,15 @@ Trimming mode: paired-end
 Trim Galore version: 0.6.7
 Cutadapt version: 4.9
 Python version: could not detect
-Number of cores used for trimming: 4
+Number of cores used for trimming: 8
 Quality Phred score cutoff: 20
 Quality encoding type selected: ASCII+33
-Unable to auto-detect most prominent adapter from the first specified file (count smallRNA: 0, count Illumina: 0, count Nextera: 0)
+Unable to auto-detect most prominent adapter from the first specified file (count Illumina: 0, count Nextera: 0, count smallRNA: 0)
 Defaulting to Illumina universal adapter ( AGATCGGAAGAGC ). Specify -a SEQUENCE to avoid this behavior).
 Adapter sequence: 'AGATCGGAAGAGC' (Illumina TruSeq, Sanger iPCR; default (inconclusive auto-detection))
 Maximum trimming error rate: 0.1 (default)
-Minimum required adapter overlap (stringency): 1 bp
+Minimum required adapter overlap (stringency): 3 bp
 Minimum required sequence length for both reads before a sequence pair gets removed: 20 bp
 Running FastQC on the data once trimming has completed
 Output file will be GZIP compressed
-
-
-This is cutadapt 4.9 with Python 3.9.9
-Command line parameters: -j 4 -e 0.1 -q 20 -O 1 -a AGATCGGAAGAGC NEU1_R1_paired.fastq.gz
-Processing single-end reads on 4 cores ...
-Finished in 2876.687 s (7.068 µs/read; 8.49 M reads/minute).
-
-=== Summary ===
-
-Total reads processed:             407,021,011
-Reads with adapters:               163,688,101 (40.2%)
-Reads written (passing filters):   407,021,011 (100.0%)
-
-Total basepairs processed: 39,784,716,839 bp
-Quality-trimmed:              35,369,975 bp (0.1%)
-Total written (filtered):  39,530,471,448 bp (99.4%)
-
-=== Adapter 1 ===
-
-Sequence: AGATCGGAAGAGC; Type: regular 3'; Length: 13; Trimmed: 163688101 times
-
-Minimum overlap: 1
-No. of allowed errors:
-1-9 bp: 0; 10-13 bp: 1
-
-Bases preceding removed adapters:
-  A: 37.9%
-  C: 0.2%
-  G: 17.9%
-  T: 43.9%
-  none/other: 0.0%
-
-Overview of removed sequences
-length	count	expect	max.err	error counts
-1	125662950	101755252.8	0	125662950
-2	24444100	25438813.2	0	24444100
-3	10401623	6359703.3	0	10401623
-4	3098036	1589925.8	0	3098036
-5	31782	397481.5	0	31782
-6	18331	99370.4	0	18331
-7	3735	24842.6	0	3735
-8	1207	6210.6	0	1207
-9	6700	1552.7	0	441 6259
-10	10553	388.2	1	143 10410
-11	4865	97.0	1	50 4815
-12	1007	24.3	1	17 990
-13	95	6.1	1	1 94
-14	30	6.1	1	0 30
-15	31	6.1	1	2 29
-16	27	6.1	1	0 27
-17	26	6.1	1	0 26
-18	30	6.1	1	0 30
-19	29	6.1	1	0 29
-20	33	6.1	1	0 33
-21	29	6.1	1	1 28
-22	34	6.1	1	0 34
-23	38	6.1	1	0 38
-24	29	6.1	1	0 29
-25	29	6.1	1	0 29
-26	25	6.1	1	0 25
-27	28	6.1	1	0 28
-28	34	6.1	1	1 33
-29	20	6.1	1	0 20
-30	35	6.1	1	0 35
-31	29	6.1	1	0 29
-32	44	6.1	1	0 44
-33	37	6.1	1	0 37
-34	38	6.1	1	1 37
-35	37	6.1	1	0 37
-36	31	6.1	1	0 31
-37	35	6.1	1	0 35
-38	40	6.1	1	0 40
-39	37	6.1	1	0 37
-40	37	6.1	1	2 35
-41	41	6.1	1	0 41
-42	30	6.1	1	0 30
-43	27	6.1	1	0 27
-44	33	6.1	1	0 33
-45	39	6.1	1	0 39
-46	28	6.1	1	0 28
-47	41	6.1	1	0 41
-48	31	6.1	1	0 31
-49	40	6.1	1	0 40
-50	30	6.1	1	0 30
-51	42	6.1	1	1 41
-52	25	6.1	1	2 23
-53	31	6.1	1	0 31
-54	23	6.1	1	0 23
-55	46	6.1	1	0 46
-56	29	6.1	1	3 26
-57	30	6.1	1	0 30
-58	19	6.1	1	0 19
-59	44	6.1	1	5 39
-60	25	6.1	1	0 25
-61	28	6.1	1	0 28
-62	26	6.1	1	0 26
-63	40	6.1	1	0 40
-64	27	6.1	1	0 27
-65	29	6.1	1	2 27
-66	38	6.1	1	0 38
-67	33	6.1	1	0 33
-68	36	6.1	1	2 34
-69	25	6.1	1	1 24
-70	41	6.1	1	0 41
-71	27	6.1	1	2 25
-72	27	6.1	1	0 27
-73	39	6.1	1	2 37
-74	30	6.1	1	1 29
-75	37	6.1	1	0 37
-76	43	6.1	1	0 43
-77	28	6.1	1	1 27
-78	28	6.1	1	0 28
-79	31	6.1	1	0 31
-80	37	6.1	1	2 35
-81	32	6.1	1	0 32
-82	40	6.1	1	0 40
-83	27	6.1	1	0 27
-84	38	6.1	1	0 38
-85	37	6.1	1	0 37
-86	32	6.1	1	0 32
-87	32	6.1	1	0 32
-88	43	6.1	1	1 42
-89	35	6.1	1	1 34
-90	27	6.1	1	1 26
-91	53	6.1	1	2 51
-92	41	6.1	1	0 41
-93	45	6.1	1	0 45
-94	42	6.1	1	0 42
-95	46	6.1	1	1 45
-96	63	6.1	1	1 62
-97	61	6.1	1	1 60
-98	61	6.1	1	0 61
-99	49	6.1	1	1 48
-100	67	6.1	1	0 67
-101	70	6.1	1	2 68
-
-RUN STATISTICS FOR INPUT FILE: NEU1_R1_paired.fastq.gz
-=============================================
-407021011 sequences processed in total
 
