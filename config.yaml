@@ -2,4 +2,5 @@
 output_dir: "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Bisulf/results"
 
 # Reference genome directory
-genome_dir: "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_ChipSeq/mm10_bowtie2_index"
+# genome_dir: "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_ChipSeq/mm10_bowtie2_index"
+genome_dir: "/beegfs/scratch/ric.broccoli/kubacki.michal/SRF_Bisulf/DATA"
