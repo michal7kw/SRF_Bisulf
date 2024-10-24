@@ -110,8 +110,13 @@ rule fastqc_raw:
         **default_resources
     message:
         "Running FastQC on raw reads for sample {wildcards.sample}"
+    params:
+        outdir = os.path.join(OUTPUT_DIR, "fastqc")  # Add this line
     shell:
-        "fastqc --outdir {OUTPUT_DIR}/fastqc --threads {threads} {input.r1} {input.r2} > {log} 2>&1"
+        """
+        mkdir -p {params.outdir}
+        fastqc --outdir {params.outdir} --threads {threads} {input.r1} {input.r2} > {log} 2>&1
+        """
 
 # Rule to trim reads using Trim Galore
 # Issue 1: trim_galore rule output naming doesn't match input patterns
@@ -127,14 +132,17 @@ rule trim_galore:
     threads: lambda wildcards, attempt: attempt * 8
     resources:
         **rule_resources["trim_galore"]
+    params:
+        outdir = os.path.join(OUTPUT_DIR, "trimmed")  # Add this line
     shell:
         """
+        mkdir -p {params.outdir}
         trim_galore --paired --fastqc --cores {threads} \
             --quality 20 \
             --phred33 \
             --stringency 3 \
             --length 20 \
-            --output_dir $(dirname {output.r1}) \
+            --output_dir {params.outdir} \
             {input.r1} {input.r2} \
             > {log} 2>&1
         """
@@ -161,8 +169,7 @@ rule bismark_align:
     input:
         r1 = os.path.join(OUTPUT_DIR, "trimmed", "{sample}_R1_val_1.fq.gz"),
         r2 = os.path.join(OUTPUT_DIR, "trimmed", "{sample}_R2_val_2.fq.gz"),
-        genome_prep = rules.bismark_genome_preparation.output,
-        index_check = os.path.join(OUTPUT_DIR, "genome_index_check.done")  # Add this line
+        index_check = os.path.join(OUTPUT_DIR, "genome_index_check.done")  # Keep this line
     output:
         bam = os.path.join(OUTPUT_DIR, "aligned", "{sample}_bismark_bt2_pe.bam")
     params:
@@ -440,25 +447,39 @@ rule methylation_stats:
             }}' > {output.stats} 2> {log}
         """
 
+# Update the check_genome_index rule to run after genome preparation
 rule check_genome_index:
     input:
         genome_dir = config["genome_dir"]
     output:
         touch(os.path.join(OUTPUT_DIR, "genome_index_check.done"))
+    log:
+        os.path.join(OUTPUT_DIR, "logs", "genome_index", "check.log")
     resources:
-        **default_resources
+        mem_mb = 8000,  # Reduced since we're only checking
+        time = "0:30:00"  # Reduced time since we're only checking
     message:
-        "Checking Bismark genome index status"
-    run:
-        index_path = os.path.join(input.genome_dir, "Bisulfite_Genome")
-        if not os.path.exists(index_path):
-            raise ValueError(f"Bismark genome index not found in {index_path}. Please run bismark_genome_preparation first.")
+        "Checking Bismark genome index"
+    shell:
+        """
+        # Verify the index files exist
+        if [ ! -d "{input.genome_dir}/Bisulfite_Genome" ]; then
+            echo "Bisulfite_Genome directory not found in {input.genome_dir}" >&2
+            exit 1
+        fi
         
-        required_files = ["Bisulfite_Genome/CT_conversion/genome.1.bt2",
-                         "Bisulfite_Genome/GA_conversion/genome.1.bt2"]
+        if [ ! -f "{input.genome_dir}/Bisulfite_Genome/CT_conversion/genome.1.bt2" ] || \
+           [ ! -f "{input.genome_dir}/Bisulfite_Genome/GA_conversion/genome.1.bt2" ]; then
+            echo "Required index files not found in {input.genome_dir}/Bisulfite_Genome/" >&2
+            echo "Please run bismark_genome_preparation manually if needed" >&2
+            exit 1
+        fi
         
-        for f in required_files:
-            full_path = os.path.join(input.genome_dir, f)
-            if not os.path.exists(full_path):
-                raise ValueError(f"Required index file not found: {full_path}")
+        echo "Genome index files found successfully" | tee {log}
+        """
+
+
+
+
+
 
